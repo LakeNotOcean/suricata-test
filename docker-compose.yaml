@@ -1,0 +1,224 @@
+version: '3.8'
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  attacker:
+    build: ./kali
+    container_name: attacker
+    hostname: attacker
+    volumes:
+      - ./attacks:/home/attacks
+    networks:
+      lab3_network:
+        ipv4_address: 172.20.0.10
+    stdin_open: true
+    tty: true
+    mem_limit: 1536m
+    cpus: 1.0
+    logging: *default-logging
+
+  victim-activemq:
+    image: vulhub/activemq:5.16.5
+    container_name: victim-activemq
+    hostname: victim-activemq
+    networks:
+      lab3_network:
+        ipv4_address: 172.20.0.101
+    ports:
+      - "61616:61616"
+      - "8161:8161"
+    environment:
+      - ACTIVEMQ_OPTS=-Xms256m -Xmx512m -XX:-UseContainerSupport
+      - ACTIVEMQ_DEBUG_OPTS=
+    stdin_open: true
+    tty: true
+    mem_limit: 768m
+    cpus: 0.75
+    logging: *default-logging
+
+  victim-redis:
+    image: redis:5.0.7
+    container_name: victim-redis
+    hostname: victim-redis
+    networks:
+      lab3_network:
+        ipv4_address: 172.20.0.102
+    ports:
+      - "6379:6379"
+    stdin_open: true
+    tty: true
+    command: redis-server --bind 0.0.0.0 --protected-mode no --save "" --maxmemory 128mb --maxmemory-policy allkeys-lru
+    mem_limit: 256m
+    cpus: 0.25
+    logging: *default-logging
+
+  # MinIO Node 1
+  victim-minio-node1:
+    image: vulhub/minio:2023-02-27T18-10-45Z
+    container_name: victim-minio-node1
+    hostname: victim-minio-node1
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin-vulhub
+    networks:
+      lab3_network:
+        ipv4_address: 172.20.0.103
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    stdin_open: true
+    tty: true
+    command:
+      - minio
+      - server
+      - --console-address
+      - :9001
+      - http://victim-minio-node1:9000/mnt/data1
+      - http://victim-minio-node2:9000/mnt/data2
+      - http://victim-minio-node3:9000/mnt/data3
+    volumes:
+      - minio_data1:/mnt/data1
+    mem_limit: 512m
+    cpus: 0.5
+    logging: *default-logging
+
+  # MinIO Node 2
+  victim-minio-node2:
+    image: vulhub/minio:2023-02-27T18-10-45Z
+    container_name: victim-minio-node2
+    hostname: victim-minio-node2
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin-vulhub
+    networks:
+      lab3_network:
+        ipv4_address: 172.20.0.113
+    command:
+      - minio
+      - server
+      - http://victim-minio-node1:9000/mnt/data1
+      - http://victim-minio-node2:9000/mnt/data2
+      - http://victim-minio-node3:9000/mnt/data3
+    stdin_open: true
+    tty: true
+    volumes:
+      - minio_data2:/mnt/data2
+    mem_limit: 512m
+    cpus: 0.5
+    logging: *default-logging
+
+  # MinIO Node 3
+  victim-minio-node3:
+    image: vulhub/minio:2023-02-27T18-10-45Z
+    container_name: victim-minio-node3
+    hostname: victim-minio-node3
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin-vulhub
+    networks:
+      lab3_network:
+        ipv4_address: 172.20.0.114
+    command:
+      - minio
+      - server
+      - http://victim-minio-node1:9000/mnt/data1
+      - http://victim-minio-node2:9000/mnt/data2
+      - http://victim-minio-node3:9000/mnt/data3
+    stdin_open: true
+    tty: true
+    volumes:
+      - minio_data3:/mnt/data3
+    mem_limit: 512m
+    cpus: 0.5
+    logging: *default-logging
+
+  victim-samba:
+    image: vulhub/samba:4.6.3
+    container_name: victim-samba
+    hostname: victim-samba
+    networks:
+      lab3_network:
+        ipv4_address: 172.20.0.104
+    ports:
+      - "445:445"
+      - "6699:6699"
+    volumes:
+      - ./smb.conf:/usr/local/samba/etc/smb.conf
+    stdin_open: true
+    tty: true
+    mem_limit: 256m
+    cpus: 0.25
+    logging: *default-logging
+
+  victim-jenkins:
+    image: vulhub/jenkins:2.441
+    container_name: victim-jenkins
+    hostname: victim-jenkins
+    networks:
+      lab3_network:
+        ipv4_address: 172.20.0.105
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+      - "5005:5005"
+    init: true
+    environment:
+      - DEBUG=1
+      - JAVA_OPTS=-Xms256m -Xmx768m -Djava.awt.headless=true -Dhudson.model.DownloadService.noSignatureCheck=true
+    stdin_open: true
+    tty: true
+    mem_limit: 1024m
+    cpus: 1.0
+    logging: *default-logging
+
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: suricata
+    hostname: suricata
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./suricata/suricata.yaml:/etc/suricata/suricata.yaml:ro
+      - ./suricata/rules:/etc/suricata/rules:ro
+      - ./suricata/logs:/var/log/suricata
+    command: -c /etc/suricata/suricata.yaml -q 2
+    stdin_open: true
+    tty: true
+    mem_limit: 1024m
+    cpus: 1.0
+    logging: *default-logging
+
+  evebox:
+    image: jasonish/evebox:latest
+    container_name: evebox
+    ports:
+      - "5636:5636"
+    volumes:
+      - ./suricata/logs:/var/log/suricata
+    environment:
+      - EVEBOX_AUTHENTICATION_REQUIRED=false
+    command: evebox server --sqlite --no-tls --input /var/log/suricata/eve.json
+    mem_limit: 256m
+    cpus: 0.5
+    logging: *default-logging
+
+volumes:
+  minio_data1:
+  minio_data2:
+  minio_data3:
+
+networks:
+  lab3_network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: br-lab3
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,0 +1,1 @@
+iptables -I FORWARD -i br-lab3 -o br-lab3 -j NFQUEUE --queue-num 2

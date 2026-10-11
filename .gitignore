@@ -1,0 +1,5 @@
+*venv*
+*exploit-CVE-2017-7494*
+*.png
+suricata/logs/**
+Лабораторная_работа_№3.pdf
