@@ -87,38 +87,39 @@ alert tcp any any -> any 6379 (msg:"[IDS] Redis Multiple Operations Detected"; \
 # MinIO
 # -----------------------------------------------------------------------------
 
-# Обнаружение CVE-2023-28432 Bootstrap Verify запроса
-alert http any any -> any 9000 (msg:"[IDS] MinIO CVE-2023-28432 Bootstrap Verify Request"; \
-    flow:to_server,established; http_uri; content:"/minio/bootstrap/v1/verify"; \
-    http_method; content:"POST"; \
-    classtype:attempted-admin; sid:3000201; rev:1;)
+# -----------------------------------------------------------------------------
+# MinIO
+# -----------------------------------------------------------------------------
 
-# Блокировка CVE-2023-28432 эксплуатации
-drop http any any -> any 9000 (msg:"[IPS] MinIO CVE-2023-28432 Exploitation Blocked"; \
-    flow:to_server,established; http_uri; content:"/minio/bootstrap/v1/verify"; \
-    http_method; content:"POST"; \
-    classtype:attempted-admin; sid:3000202; rev:2;)
+# Блокировка CVE-2023-28432
+drop tcp any any -> any 9000 (msg:"[IPS] MinIO CVE-2023-28432 TCP Hard Block"; \
+    content:"POST"; depth:4; \
+    content:"/minio/bootstrap/v1/verify"; fast_pattern; \
+    classtype:attempted-admin; sid:3000202; rev:6;)
 
 # Обнаружение MinIO admin API запросов
 alert http any any -> any 9000 (msg:"[IDS] MinIO Admin API Request Detected"; \
-    flow:to_server,established; http_uri; content:"/minio/admin"; \
-    classtype:attempted-admin; sid:3000203; rev:1;)
+    flow:to_server,established; \
+    content:"/minio/admin"; http_uri; \
+    classtype:attempted-admin; sid:3000203; rev:2;)
 
 # Обнаружение S3 API операций
 alert http any any -> any 9000 (msg:"[IDS] MinIO S3 API Operation Detected"; \
-    flow:to_server,established; http_header; content:"aws4_request"; \
-    classtype:policy-violation; sid:3000204; rev:1;)
+    flow:to_server,established; \
+    content:"aws4_request"; http_header; \
+    classtype:policy-violation; sid:3000204; rev:2;)
 
 # Обнаружение создания bucket'ов
 alert http any any -> any 9000 (msg:"[IDS] MinIO Bucket Creation Detected"; \
-    flow:to_server,established; http_method; content:"PUT"; \
-    classtype:policy-violation; sid:3000205; rev:1;)
+    flow:to_server,established; \
+    content:"PUT"; http_method; \
+    classtype:policy-violation; sid:3000205; rev:2;)
 
 # Обнаружение подозрительных имен bucket'ов
 alert http any any -> any 9000 (msg:"[IDS] MinIO Suspicious Bucket Name"; \
-    flow:to_server,established; http_uri; \
-    pcre:"/\/(hack|exploit|malware|backdoor|pwned|compromised|cve)/i"; \
-    classtype:trojan-activity; sid:3000206; rev:1;)
+    flow:to_server,established; \
+    pcre:"/\/(hack|exploit|malware|backdoor|pwned|compromised|cve)/iU"; \
+    classtype:trojan-activity; sid:3000206; rev:3;)
 
 # Обнаружение консольного доступа
 alert http any any -> any 9001 (msg:"[IDS] MinIO Console Access Detected"; \
@@ -127,7 +128,7 @@ alert http any any -> any 9001 (msg:"[IDS] MinIO Console Access Detected"; \
     classtype:policy-violation; sid:3000207; rev:1;)
 
 # Блокировка множественных S3 операций
-drop http any any -> any 9000 (msg:"[IPS] MinIO Excessive S3 Operations Blocked"; \
+drop http any any -> any 9000 (msg:"[IDS] MinIO Excessive S3 Operations Blocked"; \
     flow:to_server,established; \
     threshold: type both, track by_src, count 50, seconds 60; \
     classtype:attempted-dos; sid:3000208; rev:1;)
