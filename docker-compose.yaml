@@ -176,6 +176,21 @@ services:
     cpus: 1.0
     logging: *default-logging
 
+  victim-httpd:
+    build: ./httpd
+    container_name: victim-httpd
+    hostname: victim-httpd
+    networks:
+      lab3_network:
+        ipv4_address: 172.20.0.106
+    ports:
+      - "8090:80"
+    stdin_open: true
+    tty: true
+    mem_limit: 128m
+    cpus: 0.25
+    logging: *default-logging
+
   suricata:
     image: jasonish/suricata:latest
     container_name: suricata
