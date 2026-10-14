@@ -1,0 +1,12 @@
+postgres:changeme
+postgres:123456
+admin:admin
+postgres:passw0rd
+postgres:postgres123
+root:toor
+postgres:qwerty
+dbadmin:dbadmin
+postgres:postgres
+postgres:P@ssw0rd
+test:test
+postgres:secret

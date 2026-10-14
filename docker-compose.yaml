@@ -176,19 +176,21 @@ services:
     cpus: 1.0
     logging: *default-logging
 
-  victim-httpd:
-    build: ./httpd
-    container_name: victim-httpd
-    hostname: victim-httpd
+  victim-postgres:
+    image: postgres:14-bullseye
+    container_name: victim-postgres
+    hostname: victim-postgres
+    environment:
+      POSTGRES_PASSWORD: postgres
     networks:
       lab3_network:
-        ipv4_address: 172.20.0.106
+        ipv4_address: 172.20.0.108
     ports:
-      - "8090:80"
+      - "5432:5432"
     stdin_open: true
     tty: true
-    mem_limit: 128m
-    cpus: 0.25
+    mem_limit: 512m
+    cpus: 0.5
     logging: *default-logging
 
   suricata:

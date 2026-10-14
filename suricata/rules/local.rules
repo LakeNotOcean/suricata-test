@@ -246,3 +246,48 @@ reject http any any -> any 8080 (msg:"[IPS] Jenkins CLI Channel Blocked (CVE-202
     content:"POST"; http_method; \
     content:"/cli"; http_uri; \
     classtype:attempted-admin; sid:3000512; rev:1;)
+
+# -----------------------------------------------------------------------------
+# Meterpreter
+# -----------------------------------------------------------------------------
+
+# Обнаружение reverse shell паттернов
+alert tcp any any -> any any (msg:"[IDS] Reverse Shell Pattern /bin/sh Detected"; \
+    flow:established; content:"/bin/sh"; nocase; \
+    classtype:trojan-activity; sid:3000601; rev:1;)
+
+alert tcp any any -> any any (msg:"[IDS] Reverse Shell Pattern /bin/bash Detected"; \
+    flow:established; content:"/bin/bash"; nocase; \
+    classtype:trojan-activity; sid:3000602; rev:1;)
+
+alert tcp any any -> any any (msg:"[IDS] Netcat Reverse Shell Detected"; \
+    flow:established; content:"nc -e"; nocase; \
+    classtype:trojan-activity; sid:3000603; rev:1;)
+
+# Обнаружение Meterpreter трафика
+alert tcp any any -> any any (msg:"[IDS] Meterpreter Session Detected"; \
+    flow:established; content:"meterpreter"; nocase; \
+    classtype:trojan-activity; sid:3000604; rev:1;)
+
+alert tcp any any -> any 4444 (msg:"[IDS] Connection to Metasploit Port 4444"; \
+    flow:to_server; threshold: type limit, track by_dst, count 1, seconds 60; \
+    classtype:trojan-activity; sid:3000605; rev:1;)
+
+alert tcp any any -> any 4445 (msg:"[IDS] Connection to Metasploit Port 4445"; \
+    flow:to_server; threshold: type limit, track by_dst, count 1, seconds 60; \
+    classtype:trojan-activity; sid:3000606; rev:1;)
+
+# Обнаружение base64 encoded payload
+alert tcp any any -> any any (msg:"[IDS] Base64 Encoded Command Execution"; \
+    flow:established; content:"base64"; nocase; content:"exec"; nocase; \
+    classtype:trojan-activity; sid:3000607; rev:1;)
+
+# Обнаружение Python reverse shell
+alert tcp any any -> any any (msg:"[IDS] Python Reverse Shell Detected"; \
+    flow:established; content:"python"; nocase; content:"socket"; nocase; \
+    classtype:trojan-activity; sid:3000608; rev:1;)
+
+# Обнаружение cron-based persistence
+alert tcp any any -> any any (msg:"[IDS] Cron-based Persistence Attempt"; \
+    flow:established; content:"crontab"; nocase; \
+    classtype:trojan-activity; sid:3000609; rev:1;)

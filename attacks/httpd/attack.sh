@@ -1,1 +1,0 @@
-msfconsole -r /home/attacks/httpd/msf_httpd.rc
