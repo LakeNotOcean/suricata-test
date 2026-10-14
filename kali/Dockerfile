@@ -3,7 +3,7 @@ FROM kalilinux/kali-rolling:latest
 # зеркало
 RUN printf '%s\n' \
     'Types: deb' \
-    'URIs: https://mirror.truenetwork.ru/kali/' \
+    'URIs: https://kali.download/kali' \
     'Suites: kali-rolling' \
     'Components: main contrib non-free non-free-firmware' \
     'Signed-By: /usr/share/keyrings/kali-archive-keyring.gpg' \
