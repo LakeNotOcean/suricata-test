@@ -240,3 +240,9 @@ drop http any any -> any 8080 (msg:"[IPS] Jenkins Aggressive Scanning Blocked"; 
     flow:to_server,established; \
     threshold: type both, track by_src, count 50, seconds 120; \
     classtype:attempted-dos; sid:3000511; rev:1;)
+
+reject http any any -> any 8080 (msg:"[IPS] Jenkins CLI Channel Blocked (CVE-2024-23897)"; \
+    flow:to_server,established; \
+    content:"POST"; http_method; \
+    content:"/cli"; http_uri; \
+    classtype:attempted-admin; sid:3000512; rev:1;)
