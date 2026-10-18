@@ -14,7 +14,7 @@ services:
     volumes:
       - ./attacks:/home/attacks
     networks:
-      lab3_network:
+      lab_network:
         ipv4_address: 172.20.0.10
     stdin_open: true
     tty: true
@@ -27,7 +27,7 @@ services:
     container_name: victim-activemq
     hostname: victim-activemq
     networks:
-      lab3_network:
+      lab_network:
         ipv4_address: 172.20.0.101
     ports:
       - "61616:61616"
@@ -46,7 +46,7 @@ services:
     container_name: victim-redis
     hostname: victim-redis
     networks:
-      lab3_network:
+      lab_network:
         ipv4_address: 172.20.0.102
     ports:
       - "6379:6379"
@@ -66,7 +66,7 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin-vulhub
     networks:
-      lab3_network:
+      lab_network:
         ipv4_address: 172.20.0.103
     ports:
       - "9000:9000"
@@ -96,7 +96,7 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin-vulhub
     networks:
-      lab3_network:
+      lab_network:
         ipv4_address: 172.20.0.113
     command:
       - minio
@@ -121,7 +121,7 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin-vulhub
     networks:
-      lab3_network:
+      lab_network:
         ipv4_address: 172.20.0.114
     command:
       - minio
@@ -142,7 +142,7 @@ services:
     container_name: victim-samba
     hostname: victim-samba
     networks:
-      lab3_network:
+      lab_network:
         ipv4_address: 172.20.0.104
     ports:
       - "445:445"
@@ -160,7 +160,7 @@ services:
     container_name: victim-jenkins
     hostname: victim-jenkins
     networks:
-      lab3_network:
+      lab_network:
         ipv4_address: 172.20.0.105
     ports:
       - "8080:8080"
@@ -183,7 +183,7 @@ services:
     environment:
       POSTGRES_PASSWORD: postgres
     networks:
-      lab3_network:
+      lab_network:
         ipv4_address: 172.20.0.108
     ports:
       - "5432:5432"
@@ -191,6 +191,23 @@ services:
     tty: true
     mem_limit: 512m
     cpus: 0.5
+    logging: *default-logging
+
+  victim-juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: victim-juice-shop
+    hostname: victim-juice-shop
+    networks:
+      lab_network:
+        ipv4_address: 172.20.0.106
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    stdin_open: true
+    tty: true
+    mem_limit: 1024m
+    cpus: 1.0
     logging: *default-logging
 
   suricata:
@@ -232,10 +249,10 @@ volumes:
   minio_data3:
 
 networks:
-  lab3_network:
+  lab_network:
     driver: bridge
     driver_opts:
-      com.docker.network.bridge.name: br-lab3
+      com.docker.network.bridge.name: br-lab
     ipam:
       config:
         - subnet: 172.20.0.0/16

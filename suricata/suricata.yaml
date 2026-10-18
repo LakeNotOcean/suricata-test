@@ -11,6 +11,12 @@ stream:
   midstream: true
   async-oneside: true
 
+vars:
+  address-groups:
+    # все victim
+    HOME_NET: "[172.20.0.100/30,172.20.0.104/29,172.20.0.112/30]"
+    EXTERNAL_NET: "!$HOME_NET"
+
 # через NFQUEUE
 nfq:
   mode: accept
