@@ -2,8 +2,11 @@
 *exploit-CVE-2017-7494*
 *.png
 suricata/logs/**
+suricata/rules/local.rules
 Лабораторная*
 offline
 output
+result
 *.jar
 *log*
+*.bak
