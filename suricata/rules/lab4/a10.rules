@@ -1,0 +1,54 @@
+# SSRF: AWS/Cloud metadata endpoint
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF AWS metadata attempt"; \
+    flow:to_server,established; \
+    http.request_body; content:"169.254.169.254"; \
+    classtype:web-application-attack; sid:4510001; rev:1;)
+
+# SSRF: localhost/127.0.0.1 targeting
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF localhost targeting"; \
+    flow:to_server,established; \
+    http.request_body; pcre:"/(localhost|127\.0\.0\.1)/"; \
+    classtype:web-application-attack; sid:4510002; rev:1;)
+
+# SSRF: internal IP ranges (RFC1918)
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF internal IP targeting"; \
+    flow:to_server,established; \
+    http.request_body; pcre:"/(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/"; \
+    classtype:web-application-attack; sid:4510003; rev:1;)
+
+# SSRF: profile image upload endpoint
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF via profile image URL"; \
+    flow:to_server,established; \
+    http.uri; content:"/profile/image/url"; \
+    http.method; content:"POST"; \
+    classtype:policy-violation; sid:4510004; rev:1;)
+
+# SSRF: file:// protocol attempt
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF file protocol attempt"; \
+    flow:to_server,established; \
+    http.request_body; content:"file://"; nocase; \
+    classtype:web-application-attack; sid:4510005; rev:1;)
+
+# Блокировка SSRF к AWS metadata
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A10 SSRF AWS metadata blocked"; \
+    flow:to_server,established; \
+    http.request_body; content:"169.254.169.254"; \
+    sid:4510101; rev:1;)
+
+# Блокировка SSRF к localhost
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A10 SSRF localhost blocked"; \
+    flow:to_server,established; \
+    http.request_body; pcre:"/(localhost|127\.0\.0\.1)/"; \
+    sid:4510102; rev:1;)
+
+# Блокировка SSRF к internal IP
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A10 SSRF internal IP blocked"; \
+    flow:to_server,established; \
+    http.request_body; pcre:"/(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/"; \
+    sid:4510103; rev:1;)
+
+# Блокировка file:// protocol
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A10 SSRF file protocol blocked"; \
+    flow:to_server,established; \
+    http.request_body; content:"file://"; nocase; \
+    sid:4510104; rev:1;)

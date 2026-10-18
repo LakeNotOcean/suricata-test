@@ -1,0 +1,22 @@
+# Массовые попытки логина (5 за 10 сек)
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A04 Login brute-force detected"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    http.method; content:"POST"; \
+    threshold:type both, track by_src, count 5, seconds 10; \
+    classtype:attempted-recon; sid:4504001; rev:3;)
+
+# Агрессивный brute-force (10+ за 30 сек)
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A04 Aggressive login brute-force"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    threshold:type both, track by_src, count 10, seconds 30; \
+    classtype:attempted-recon; sid:4504002; rev:1;)
+
+# Блокировка brute-force
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] Login brute-force blocked"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    http.method; content:"POST"; \
+    detection_filter: track by_src, count 5, seconds 10; \
+    sid:4504101; rev:2;)

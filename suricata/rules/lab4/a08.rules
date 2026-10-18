@@ -1,0 +1,54 @@
+# XSS: тег <script>
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A08 XSS script tag detected"; \
+    flow:to_server,established; \
+    http.uri; content:"<script"; nocase; \
+    classtype:web-application-attack; sid:4508001; rev:1;)
+
+# XSS: onerror/onload event handlers
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A08 XSS event handler detected"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/on(load|error|click)\s*=/i"; \
+    classtype:web-application-attack; sid:4508002; rev:1;)
+
+# XSS: javascript: URI
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A08 XSS javascript URI detected"; \
+    flow:to_server,established; \
+    http.uri; content:"javascript:"; nocase; \
+    classtype:web-application-attack; sid:4508003; rev:1;)
+
+# XSS: iframe injection
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A08 XSS iframe injection detected"; \
+    flow:to_server,established; \
+    http.uri; content:"<iframe"; nocase; \
+    classtype:web-application-attack; sid:4508004; rev:1;)
+
+# XSS: img tag with onerror
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A08 XSS img onerror detected"; \
+    flow:to_server,established; \
+    http.uri; content:"<img"; nocase; \
+    content:"onerror"; nocase; distance:0; within:50; \
+    classtype:web-application-attack; sid:4508005; rev:1;)
+
+# Блокировка XSS через script тег
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A08 XSS script blocked"; \
+    flow:to_server,established; \
+    http.uri; content:"<script"; nocase; \
+    sid:4508101; rev:1;)
+
+# Блокировка javascript: URI
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A08 XSS javascript URI blocked"; \
+    flow:to_server,established; \
+    http.uri; content:"javascript:"; nocase; \
+    sid:4508102; rev:1;)
+
+# Блокировка iframe injection
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A08 XSS iframe blocked"; \
+    flow:to_server,established; \
+    http.uri; content:"<iframe"; nocase; \
+    sid:4508103; rev:1;)
+
+# Блокировка event handlers
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A08 XSS event handler blocked"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/on(load|error|click)\s*=/i"; \
+    sid:4508104; rev:1;)

@@ -1,0 +1,18 @@
+# Провоцирование stack trace для fingerprinting
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A06 Error page fingerprinting attempt"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/\.txt$|\.exe$|\.dll$|\.jsp$/"; \
+    classtype:attempted-recon; sid:4506001; rev:1;)
+
+# Массовые запросы несуществующих файлов (fingerprinting scan)
+alert http $HOME_NET 3000 -> any any (msg:"[IDS] A06 Component version scan"; \
+    flow:from_server,established; \
+    http.stat_code; content:"403"; \
+    threshold:type both, track by_dst, count 5, seconds 10; \
+    classtype:attempted-recon; sid:4506002; rev:2;)
+
+# Попытки доступа к конфигам для определения зависимостей
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A06 Dependency config access"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/package\.json|composer\.json|requirements\.txt/i"; \
+    classtype:attempted-recon; sid:4506003; rev:1;)

@@ -1,0 +1,35 @@
+# SQL Injection в login (обход аутентификации)
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A07 SQLi authentication bypass"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    http.request_body; pcre:"/or\s+1=1/i"; \
+    classtype:web-application-attack; sid:4507001; rev:1;)
+
+# Последовательные неудачные попытки логина (credential stuffing)
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A07 Multiple failed login attempts"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    http.method; content:"POST"; \
+    threshold:type both, track by_src, count 5, seconds 30; \
+    classtype:attempted-recon; sid:4507002; rev:1;)
+
+# Перебор разных email (user enumeration)
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A07 User enumeration attempt"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    threshold:type both, track by_src, count 10, seconds 60; \
+    classtype:attempted-recon; sid:4507003; rev:1;)
+
+# Блокировка SQLi в login
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A07 SQLi auth bypass blocked"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    http.request_body; pcre:"/or\s+1=1|union\s+select/i"; \
+    sid:4507101; rev:1;)
+
+# Блокировка после множественных попыток логина
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A07 Failed login threshold exceeded"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    detection_filter: track by_src, count 10, seconds 30; \
+    sid:4507102; rev:2;)

@@ -1,0 +1,35 @@
+# Доступ к FTP-директории
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A02 FTP directory access"; \
+    flow:to_server,established; \
+    http.uri; content:"/ftp/"; \
+    classtype:policy-violation; sid:4502001; rev:1;)
+
+# Доступ к backup-файлам (.bak)
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A02 Backup file access attempt"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/\.bak/i"; \
+    classtype:policy-violation; sid:4502002; rev:1;)
+
+# Poison Null Byte в URI
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A02 Poison Null Byte detected"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/%00|%2500/i"; \
+    classtype:web-application-attack; sid:4502003; rev:1;)
+
+# Доступ к конфиденциальным файлам
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A02 Sensitive file access (coupons)"; \
+    flow:to_server,established; \
+    http.uri; content:"coupons"; nocase; \
+    classtype:policy-violation; sid:4502004; rev:1;)
+
+# Блокировка Poison Null Byte
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A02 Poison Null Byte blocked"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/%00|%2500/i"; \
+    sid:4502101; rev:1;)
+
+# Блокировка доступа к backup-файлам
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A02 Backup file access blocked"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/\.bak/i"; \
+    sid:4502102; rev:1;)

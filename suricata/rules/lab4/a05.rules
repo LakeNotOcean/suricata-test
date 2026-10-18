@@ -1,0 +1,59 @@
+# Poison Null Byte в URI
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A05 Poison Null Byte detected"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/%00|%2500/i"; \
+    classtype:web-application-attack; sid:4505001; rev:1;)
+
+# Доступ к FTP-директории
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A05 FTP directory access"; \
+    flow:to_server,established; \
+    http.uri; content:"/ftp/"; \
+    classtype:policy-violation; sid:4505002; rev:1;)
+
+# Доступ к backup-файлам
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A05 Backup file access"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/\.bak/i"; \
+    classtype:policy-violation; sid:4505003; rev:1;)
+
+# Доступ к metrics endpoint
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A05 Metrics endpoint access"; \
+    flow:to_server,established; \
+    http.uri; content:"/metrics"; \
+    classtype:policy-violation; sid:4505004; rev:1;)
+
+# Доступ к Security Questions API
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A05 Security Questions API access"; \
+    flow:to_server,established; \
+    http.uri; content:"/api/SecurityQuestions"; \
+    classtype:policy-violation; sid:4505005; rev:1;)
+
+# Доступ к Score Board
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A05 Score Board access"; \
+    flow:to_server,established; \
+    http.uri; content:"/score-board"; \
+    classtype:policy-violation; sid:4505006; rev:1;)
+
+# Блокировка Poison Null Byte
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A05 Poison Null Byte blocked"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/%00|%2500/i"; \
+    sid:4505101; rev:1;)
+
+# Блокировка доступа к backup-файлам
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A05 Backup file access blocked"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/\.bak/i"; \
+    sid:4505102; rev:1;)
+
+# Блокировка доступа к metrics
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A05 Metrics access blocked"; \
+    flow:to_server,established; \
+    http.uri; content:"/metrics"; \
+    sid:4505103; rev:1;)
+
+# Блокировка Score Board для внешних IP (атакующий 172.20.0.10 вне $HOME_NET)
+drop http !$HOME_NET any -> $HOME_NET 3000 (msg:"[IPS] A05 External Score Board access blocked"; \
+    flow:to_server,established; \
+    http.uri; content:"/score-board"; \
+    sid:4505104; rev:1;)

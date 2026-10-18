@@ -1,0 +1,19 @@
+# IDOR: прямой доступ к корзине по ID
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A01 IDOR basket access attempt"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/\/rest\/basket\/\d+/"; \
+    classtype:web-application-attack; sid:4501001; rev:2;)
+
+# IDOR: последовательный перебор basket ID (enumeration)
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A01 IDOR basket enumeration detected"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/\/rest\/basket\/\d+/"; \
+    threshold:type both, track by_src, count 3, seconds 10; \
+    classtype:web-application-attack; sid:4501002; rev:2;)
+
+# Блокировка перебора корзин
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A01 IDOR basket enumeration blocked"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/\/rest\/basket\/\d+/"; \
+    detection_filter: track by_src, count 5, seconds 10; \
+    sid:4501101; rev:3;)

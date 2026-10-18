@@ -1,0 +1,25 @@
+# SQL Injection: OR 1=1 в теле запроса
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A03 SQLi OR 1=1 detected"; \
+    flow:to_server,established; \
+    http.request_body; pcre:"/or\s+1=1/i"; \
+    classtype:web-application-attack; sid:4503001; rev:1;)
+
+# SQL Injection: UNION SELECT в URI
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A03 SQLi UNION SELECT detected"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/union\s+select/i"; \
+    classtype:web-application-attack; sid:4503002; rev:1;)
+
+# SQL Injection: комментарий --
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A03 SQLi comment detected"; \
+    flow:to_server,established; \
+    http.request_body; content:"--"; \
+    classtype:web-application-attack; sid:4503003; rev:1;)
+
+# Блокировка SQLi на endpoint /rest/user/login
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A03 SQLi blocked on login"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    http.method; content:"POST"; \
+    http.request_body; pcre:"/or\s+1=1|union\s+select/i"; \
+    sid:4503101; rev:1;)

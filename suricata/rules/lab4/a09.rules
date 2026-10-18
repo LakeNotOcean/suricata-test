@@ -1,0 +1,24 @@
+# Доступ к директории с логами
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A09 Log directory access"; \
+    flow:to_server,established; \
+    http.uri; content:"/support/logs"; \
+    classtype:policy-violation; sid:4509001; rev:1;)
+
+# Скачивание файлов логов
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A09 Log file download"; \
+    flow:to_server,established; \
+    http.uri; pcre:"/\/support\/logs\/(access\.log|audit\.json)/"; \
+    classtype:policy-violation; sid:4509002; rev:1;)
+
+# Массовое скачивание логов
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A09 Multiple log file downloads"; \
+    flow:to_server,established; \
+    http.uri; content:"/support/logs/"; \
+    threshold:type both, track by_src, count 3, seconds 30; \
+    classtype:policy-violation; sid:4509003; rev:1;)
+
+# Блокировка доступа к логам
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A09 Log access blocked"; \
+    flow:to_server,established; \
+    http.uri; content:"/support/logs"; \
+    sid:4509101; rev:1;)
