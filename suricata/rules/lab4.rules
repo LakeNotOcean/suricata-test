@@ -3,24 +3,24 @@
 # -----------------------------------------------------------------------------
 
 # IDOR: прямой доступ к корзине по ID
-alert http any any -> $HOME_NET 3000 (msg:"[IDS] A01I DOR basket access attempt"; \
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A01 IDOR basket access attempt"; \
     flow:to_server,established; \
     http.uri; pcre:"/\/rest\/basket\/\d+/"; \
-    classtype:web-application-attack; sid:4501001; rev:1;)
+    classtype:web-application-attack; sid:4501001; rev:2;)
 
 # IDOR: последовательный перебор basket ID (enumeration)
 alert http any any -> $HOME_NET 3000 (msg:"[IDS] A01 IDOR basket enumeration detected"; \
     flow:to_server,established; \
     http.uri; pcre:"/\/rest\/basket\/\d+/"; \
     threshold:type both, track by_src, count 3, seconds 10; \
-    classtype:web-application-attack; sid:4501002; rev:1;)
+    classtype:web-application-attack; sid:4501002; rev:2;)
 
 # Блокировка перебора корзин
 drop http any any -> $HOME_NET 3000 (msg:"[IPS] A01 IDOR basket enumeration blocked"; \
     flow:to_server,established; \
     http.uri; pcre:"/\/rest\/basket\/\d+/"; \
-    threshold:type both, track by_src, count 5, seconds 10; \
-    sid:4501101; rev:1;)
+    detection_filter: track by_src, count 5, seconds 10; \
+    sid:4501101; rev:3;)
 
 # -----------------------------------------------------------------------------
 # A02:2021 Cryptographic Failures
@@ -62,7 +62,6 @@ drop http any any -> $HOME_NET 3000 (msg:"[IPS] A02 Backup file access blocked";
     http.uri; pcre:"/\.bak/i"; \
     sid:4502102; rev:1;)
 
-
 # -----------------------------------------------------------------------------
 # A03:2021 Injection (SQLi)
 # -----------------------------------------------------------------------------
@@ -103,8 +102,7 @@ alert http any any -> $HOME_NET 3000 (msg:"[IDS] A04 Login brute-force detected"
     http.uri; content:"/rest/user/login"; \
     http.method; content:"POST"; \
     threshold:type both, track by_src, count 5, seconds 10; \
-    ip.src; dataset:set,bruteforce,type ip; \
-    classtype:attempted-recon; sid:4504001; rev:2;)
+    classtype:attempted-recon; sid:4504001; rev:3;)
 
 # Агрессивный brute-force (10+ за 30 сек)
 alert http any any -> $HOME_NET 3000 (msg:"[IDS] A04 Aggressive login brute-force"; \
@@ -113,8 +111,13 @@ alert http any any -> $HOME_NET 3000 (msg:"[IDS] A04 Aggressive login brute-forc
     threshold:type both, track by_src, count 10, seconds 30; \
     classtype:attempted-recon; sid:4504002; rev:1;)
 
-# Блокировка после 5 попыток за 10 секунд
-drop http any any -> $HOME_NET 3000 (msg:"[IPS] A04 Login brute-force blocked"; flow:to_server,established; http.uri; content:"/rest/user/login"; http.method; content:"POST"; sid:4504101; rev:3;)
+# Блокировка brute-force
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] Login brute-force blocked"; \
+    flow:to_server,established; \
+    http.uri; content:"/rest/user/login"; \
+    http.method; content:"POST"; \
+    detection_filter: track by_src, count 5, seconds 10; \
+    sid:4504101; rev:2;)
 
 # -----------------------------------------------------------------------------
 # A05:2021 Security Misconfiguration
@@ -191,11 +194,11 @@ alert http any any -> $HOME_NET 3000 (msg:"[IDS] A06 Error page fingerprinting a
     classtype:attempted-recon; sid:4506001; rev:1;)
 
 # Массовые запросы несуществующих файлов (fingerprinting scan)
-alert http any any -> $HOME_NET 3000 (msg:"[IDS] A06 Component version scan"; \
-    flow:to_server,established; \
+alert http $HOME_NET 3000 -> any any (msg:"[IDS] A06 Component version scan"; \
+    flow:from_server,established; \
     http.stat_code; content:"403"; \
-    threshold:type both, track by_src, count 5, seconds 10; \
-    classtype:attempted-recon; sid:4506002; rev:1;)
+    threshold:type both, track by_dst, count 5, seconds 10; \
+    classtype:attempted-recon; sid:4506002; rev:2;)
 
 # Попытки доступа к конфигам для определения зависимостей
 alert http any any -> $HOME_NET 3000 (msg:"[IDS] A06 Dependency config access"; \
@@ -240,8 +243,8 @@ drop http any any -> $HOME_NET 3000 (msg:"[IPS] A07 SQLi auth bypass blocked"; \
 drop http any any -> $HOME_NET 3000 (msg:"[IPS] A07 Failed login threshold exceeded"; \
     flow:to_server,established; \
     http.uri; content:"/rest/user/login"; \
-    threshold:type both, track by_src, count 10, seconds 30; \
-    sid:4507102; rev:1;)
+    detection_filter: track by_src, count 10, seconds 30; \
+    sid:4507102; rev:2;)
 
 # -----------------------------------------------------------------------------
 # A08:2021 Software and Data Integrity Failures (XSS)
@@ -330,3 +333,62 @@ drop http any any -> $HOME_NET 3000 (msg:"[IPS] A09 Log access blocked"; \
     flow:to_server,established; \
     http.uri; content:"/support/logs"; \
     sid:4509101; rev:1;)
+
+# -----------------------------------------------------------------------------
+# A10:2021 Server-Side Request Forgery (SSRF)
+# -----------------------------------------------------------------------------
+
+# SSRF: AWS/Cloud metadata endpoint
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF AWS metadata attempt"; \
+    flow:to_server,established; \
+    http.request_body; content:"169.254.169.254"; \
+    classtype:web-application-attack; sid:4510001; rev:1;)
+
+# SSRF: localhost/127.0.0.1 targeting
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF localhost targeting"; \
+    flow:to_server,established; \
+    http.request_body; pcre:"/(localhost|127\.0\.0\.1)/"; \
+    classtype:web-application-attack; sid:4510002; rev:1;)
+
+# SSRF: internal IP ranges (RFC1918)
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF internal IP targeting"; \
+    flow:to_server,established; \
+    http.request_body; pcre:"/(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/"; \
+    classtype:web-application-attack; sid:4510003; rev:1;)
+
+# SSRF: profile image upload endpoint
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF via profile image URL"; \
+    flow:to_server,established; \
+    http.uri; content:"/profile/image/url"; \
+    http.method; content:"POST"; \
+    classtype:policy-violation; sid:4510004; rev:1;)
+
+# SSRF: file:// protocol attempt
+alert http any any -> $HOME_NET 3000 (msg:"[IDS] A10 SSRF file protocol attempt"; \
+    flow:to_server,established; \
+    http.request_body; content:"file://"; nocase; \
+    classtype:web-application-attack; sid:4510005; rev:1;)
+
+# Блокировка SSRF к AWS metadata
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A10 SSRF AWS metadata blocked"; \
+    flow:to_server,established; \
+    http.request_body; content:"169.254.169.254"; \
+    sid:4510101; rev:1;)
+
+# Блокировка SSRF к localhost
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A10 SSRF localhost blocked"; \
+    flow:to_server,established; \
+    http.request_body; pcre:"/(localhost|127\.0\.0\.1)/"; \
+    sid:4510102; rev:1;)
+
+# Блокировка SSRF к internal IP
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A10 SSRF internal IP blocked"; \
+    flow:to_server,established; \
+    http.request_body; pcre:"/(10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.)/"; \
+    sid:4510103; rev:1;)
+
+# Блокировка file:// protocol
+drop http any any -> $HOME_NET 3000 (msg:"[IPS] A10 SSRF file protocol blocked"; \
+    flow:to_server,established; \
+    http.request_body; content:"file://"; nocase; \
+    sid:4510104; rev:1;)
